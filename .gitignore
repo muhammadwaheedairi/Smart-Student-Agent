@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.py[co]
+*.egg-info/
+.env
+.venv
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
