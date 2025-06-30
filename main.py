@@ -1,40 +1,48 @@
 import os
-import requests
+import asyncio
 from dotenv import load_dotenv
+from agents import Agent, Runner, OpenAIChatCompletionsModel
+from openai import AsyncOpenAI
 
+# 🔐 Load API key from .env
 load_dotenv()
-API_KEY = os.getenv("OPENROUTER_API_KEY")
+api_key = os.getenv("LITELLM_API_KEY")
 
-HEADERS = {
-    "Authorization": f"Bearer {API_KEY}",
-    "HTTP-Referer": "http://localhost:8501",
-    "X-Title": "SmartStudentAgent",
-    "Content-Type": "application/json"
-}
+# ✅ LiteLLM-compatible OpenRouter base URL
+client = AsyncOpenAI(
+    api_key=api_key,
+    base_url="https://openrouter.ai/api/v1/"
+)
 
-MODEL = "mistralai/mistral-7b-instruct"  # You can swap model here
+# 🧠 Define Agent
+student_agent = Agent(
+    name="Smart Student Agent",
+    instructions=(
+        "You are a helpful study assistant that can:\n"
+        "- Answer academic questions\n"
+        "- Provide effective study tips\n"
+        "- Summarize short passages clearly\n"
+        "Always reply in a simple and clear tone."
+    ),
+    model=OpenAIChatCompletionsModel(
+        model="deepseek/deepseek-r1-0528:free",  # ✅ Change to valid OpenRouter model
+        openai_client=client
+    )
+)
 
-def call_openrouter(prompt):
-    data = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}]
-    }
+# 📚 Academic Q&A
+async def ask_academic_question(query: str) -> str:
+    result = await Runner.run(student_agent, query)
+    return result.final_output
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=HEADERS, json=data)
+# 📖 Study Tips
+async def provide_study_tips(topic: str) -> str:
+    prompt = f"Give me 5 simple study tips for the topic: {topic}"
+    result = await Runner.run(student_agent, prompt)
+    return result.final_output
 
-    if response.status_code == 200:
-        return response.json()['choices'][0]['message']['content']
-    else:
-        return f"❌ Error: {response.status_code} - {response.text}"
-
-
-def ask_academic_question(prompt):
-    return call_openrouter(f"Answer this academic question in a clear and concise way: {prompt}")
-
-
-def get_study_tips(topic):
-    return call_openrouter(f"Give 5 study tips to master this topic: {topic}")
-
-
-def summarize_text(text):
-    return call_openrouter(f"Summarize the following text in simple bullet points:\n\n{text}")
+# ✂️ Summarizer
+async def summarize_text(text: str) -> str:
+    prompt = f"Summarize this in 3 lines:\n{text}"
+    result = await Runner.run(student_agent, prompt)
+    return result.final_output

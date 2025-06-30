@@ -1,3 +1,5 @@
 streamlit
-requests
+openai
 python-dotenv
+openai-agents
+litellm
